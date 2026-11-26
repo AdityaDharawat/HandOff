@@ -1,0 +1,120 @@
+name: Release VSIX
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing approved release tag (for example v0.1.0)
+        required: true
+        type: string
+      publish:
+        description: Publish the verified assets after checks pass
+        type: boolean
+        default: false
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+concurrency:
+  group: release-vsix
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    environment: release
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Require dispatch on the approved version tag
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: |
+          test "v$(jq -r .version vscode-extension/package.json)" = "$RELEASE_TAG"
+          test -s "docs/releases/$RELEASE_TAG.md"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12.10'
+      - run: python -m pip install pathspec==1.1.1
+      - name: Validate private policy and source candidates
+        env:
+          HANDOFF_PRIVATE_EXCLUSION_POLICY: ${{ secrets.HANDOFF_PRIVATE_EXCLUSION_POLICY }}
+        run: python scripts/publication_preflight.py --policy-env
+  tests:
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+  security:
+    needs: validate
+    uses: ./.github/workflows/security.yml
+  extension:
+    needs: validate
+    uses: ./.github/workflows/extension.yml
+  verify:
+    needs: extension
+    runs-on: ubuntu-latest
+    environment: release
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: handoff-vsix
+          path: dist
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12.10'
+      - run: python -m pip install pathspec==1.1.1
+      - name: Scan source archive, wheel and VSIX against private policy
+        env:
+          HANDOFF_PRIVATE_EXCLUSION_POLICY: ${{ secrets.HANDOFF_PRIVATE_EXCLUSION_POLICY }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          python scripts/publication_preflight.py --policy-env \
+            --archive "dist/handoff_continuity-$version.tar.gz" \
+            --archive "dist/handoff_continuity-$version-py3-none-any.whl" \
+            --archive "dist/handoff-project-intelligence-$version.vsix"
+      - name: Verify rehearsal artifact checksums
+        working-directory: dist
+        run: |
+          version="${RELEASE_TAG#v}"
+          sha256sum --binary -- "handoff_continuity-$version.tar.gz" \
+            "handoff_continuity-$version-py3-none-any.whl" \
+            "handoff-project-intelligence-$version.vsix" > verified-checksums
+          cmp REHEARSAL_SHA256SUMS verified-checksums
+      - name: Verify release asset and exact checksum entry
+        run: |
+          name="handoff-project-intelligence-${RELEASE_TAG#v}.vsix"
+          expected=$(python scripts/verify_vsix.py "dist/$name")
+          test "$expected" = "$(cat dist/SHA256SUMS)"
+  publish:
+    if: ${{ inputs.publish }}
+    needs: [tests, security, verify]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: handoff-vsix
+          path: dist
+      - name: Verify release asset and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          name="handoff-project-intelligence-${RELEASE_TAG#v}.vsix"
+          expected=$(python scripts/verify_vsix.py "dist/$name")
+          test "$expected" = "$(cat dist/SHA256SUMS)"
+          gh release create "$RELEASE_TAG" "dist/$name" dist/SHA256SUMS --verify-tag \
+            --title "HandOff $RELEASE_TAG" --notes-file "docs/releases/$RELEASE_TAG.md"

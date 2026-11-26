@@ -1,0 +1,10 @@
+src/**
+tests/**
+scripts/**
+tsconfig.json
+**/*.map
+node_modules/**
+*.vsix
+
+**/.handoff-private-exclusions.yml
+**/.handoff-private-exclusions.gitignore
