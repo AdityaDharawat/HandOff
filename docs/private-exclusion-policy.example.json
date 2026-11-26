@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "git_ignore": [
+    "synthetic-local-vault/"
+  ],
+  "tracked_dirs": [
+    "synthetic-local-vault"
+  ],
+  "regression": [
+    {
+      "path": "synthetic-local-vault/data.json",
+      "ignored": true,
+      "tracked": true,
+      "legacy_only": true
+    },
+    {
+      "path": "nested/synthetic-local-vault/data.json",
+      "ignored": true,
+      "tracked": true,
+      "legacy_only": true
+    },
+    {
+      "path": "src/handoff/bridge.py",
+      "ignored": false,
+      "tracked": false,
+      "legacy_only": false
+    }
+  ],
+  "nonce": "0000000000000000000000000000000000000000000000000000000000000000"
+}

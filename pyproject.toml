@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling>=1.26,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "handoff-continuity"
+version = "0.1.0"
+description = "Local evidence-based project handovers"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+  "typer>=0.15,<1", "rich>=13,<16", "pydantic>=2.10,<3",
+  "PyYAML>=6.0.2,<7", "pathspec>=0.12,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<10", "pytest-cov>=6,<8", "ruff>=0.11,<1", "build>=1.2,<2",
+  "pip-audit>=2.9,<3", "mypy>=1.18,<2", "types-PyYAML>=6,<7",
+]
+
+[project.scripts]
+handoff = "handoff.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/handoff"]
+dev-mode-dirs = ["src"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/examples", "/docs", "/scripts", "/.agents", "/.claude", "/*.md", "/LICENSE", "/pyproject.toml"]
+exclude = ["**/.handoff", "**/__pycache__", "**/HANDOFF.md", "**/HANDOFF_AGENT.md", "**/.handoff-private-exclusions.yml", "**/.handoff-private-exclusions.gitignore"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = [".uv-cache", ".audit-cache", ".verification-*", ".handoff"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/handoff"]
+check_untyped_defs = true
+warn_unused_ignores = true

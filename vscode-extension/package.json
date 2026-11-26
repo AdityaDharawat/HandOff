@@ -1,0 +1,110 @@
+{
+  "name": "handoff-project-intelligence",
+  "displayName": "HandOff",
+  "description": "Local evidence-backed project intelligence, architecture, and developer handovers.",
+  "version": "0.1.0",
+  "publisher": "handoff-local",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onView:handoff.workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": false
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "build": "node scripts/prepare.mjs && npm run compile",
+    "package": "vsce package --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.7.0"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "handoff.analyze",
+        "title": "HandOff: Analyze Current Repository"
+      },
+      {
+        "command": "handoff.dashboard",
+        "title": "HandOff: Open Dashboard"
+      },
+      {
+        "command": "handoff.refresh",
+        "title": "HandOff: Refresh Analysis"
+      },
+      {
+        "command": "handoff.generate",
+        "title": "HandOff: Generate Handover Reports"
+      },
+      {
+        "command": "handoff.export",
+        "title": "HandOff: Export Handover Package"
+      },
+      {
+        "command": "handoff.features",
+        "title": "HandOff: Open Feature Tracker"
+      },
+      {
+        "command": "handoff.architecture",
+        "title": "HandOff: Open Architecture Graph"
+      },
+      {
+        "command": "handoff.validate",
+        "title": "HandOff: Validate Analysis"
+      },
+      {
+        "command": "handoff.risks",
+        "title": "HandOff: Show Project Risks"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "handoff",
+          "title": "HandOff",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "handoff": [
+        {
+          "id": "handoff.workspace",
+          "name": "Project Intelligence"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "HandOff",
+      "properties": {
+        "handoff.pythonPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Absolute path to a trusted Python 3.11+ executable. Leave empty for automatic discovery."
+        },
+        "handoff.outputDirectory": {
+          "type": "string",
+          "default": ".handoff",
+          "scope": "resource",
+          "description": "Repository-relative visual output directory under .handoff."
+        }
+      }
+    }
+  }
+}
